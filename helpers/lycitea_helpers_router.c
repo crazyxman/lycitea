@@ -302,7 +302,7 @@ void  parse(zval *route, zval *return_value)
     pcre_cache_entry *pce;
     zval chars;
     if ((pce = pcre_get_compiled_regex_cache(regex)) != NULL) {
-        php_pcre_split_impl(pce, cutRoute, ZSTR_LEN(cutRoute), &chars, -1, 0);
+        php_pcre_split_impl(pce, ZSTR_VAL(cutRoute), ZSTR_LEN(cutRoute), &chars, -1, 0);
     }
     zend_string_release(regex);
     if (numOptionals != (zend_array_count(Z_ARR(chars)) - 1)) {

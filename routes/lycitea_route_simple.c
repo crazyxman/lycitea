@@ -124,7 +124,7 @@ PHP_METHOD(lycitea_route_simple, addGroup) {
     smart_str_appendl(&joinPrefix, Z_STRVAL_P(prefix), Z_STRLEN_P(prefix));
     smart_str_0(&joinPrefix);
     zval newPrefix;
-    ZVAL_STR(&newPrefix, smart_str_extract(&joinPrefix));
+    ZVAL_STRING(&newPrefix, joinPrefix.s->val);
     zend_update_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), &newPrefix);
     zend_fcall_info_cache fcc;
     zend_string *key = NULL;
