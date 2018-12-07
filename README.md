@@ -5,7 +5,7 @@ Fast Component collection written in c, built in php
 ### Requirement
 * PHP 7.0 +
 
-### Compile Yaf in Linux
+### Compile Lycitea in Linux
 ```
 $/path/to/phpize
 $./configure --with-php-config=/path/to/php-config
