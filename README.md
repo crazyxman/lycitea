@@ -14,7 +14,7 @@ $make && make install
 ### Performance
 Dynamic route is faster than <a href="https://github.com/nikic/FastRoute" target="_blank">FastRoute</a> by from 73 times  to 92 times. Moreover static route performes better than Dynamic route.
 
-### Usage
+### Router Usage
 Here's a basic usage example:
 
 ```
