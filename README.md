@@ -24,7 +24,7 @@ $lyciroute->get('/cd', 'handle');
 // Matches /cd/dir/php, but not /cd/dir/PHP
 $lyciroute->get('/cd/dir/{name:[a-z]+}', 'handle', LYCITEA_ROUTE_SIMPLE_REGEX);
 
-// Matches /cd/dirv/php/bin, but not /cd/dirv/bin
+// Matches /cd/dirv/php and /cd/dirv/php/bin, but not /cd/dirv/bin
 $lyciroute->get('/cd/dirv/{name:[a-z]+}[/bin]', 'handle', LYCITEA_ROUTE_SIMPLE_REGEX);
 
 // Matches /cd/dirs/php/123, but not /cd/dirs/php/abc
