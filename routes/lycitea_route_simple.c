@@ -321,9 +321,8 @@ LYCITEA_STARTUP_FUNCTION(route_simple) {
     INIT_CLASS_ENTRY(ce, "Lycitea\\Route\\Simple", lycitea_route_simple);
     lycitea_route_simple_ce = zend_register_internal_class_ex(&ce, NULL);
     zend_declare_property_string(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), "", ZEND_ACC_PROTECTED);
-    zval staticRoutes, regexRoutes;
-    zend_declare_property(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_STATICROUTE), &staticRoutes,  ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
-    zend_declare_property(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_REGEXROUTE), &regexRoutes,  ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
+    zend_declare_property_null(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_STATICROUTE), ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
+    zend_declare_property_null(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_REGEXROUTE), ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
     zend_declare_property_long(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_RUNMODE), LYCITEA_ROUTE_SIMPLE_RUN_STRICT, ZEND_ACC_FINAL| ZEND_ACC_PRIVATE);
     return SUCCESS;
 }
