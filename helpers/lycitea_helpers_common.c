@@ -29,7 +29,7 @@
 #include "lycitea_helpers_common.h"
 
 
-zval depthFind(int args,  char* types, zval * const arr, ...) {
+zval lycitea_helpers_common_depthfind(int args,  char* types, zval * const arr, ...) {
 
     va_list argptr;
     va_start(argptr, arr);
@@ -50,10 +50,7 @@ zval depthFind(int args,  char* types, zval * const arr, ...) {
             }
         }
 
-        if (NULL == pzval) {
-            zval nval;
-            ZVAL_NULL(&nval);
-            pzval = &nval;
+        if (NULL == pzval || IS_UNDEF == Z_TYPE_P(pzval)) {
             break;
         }
 
@@ -62,11 +59,16 @@ zval depthFind(int args,  char* types, zval * const arr, ...) {
 
     }
     va_end(argptr);
+    if (NULL == pzval || IS_UNDEF == Z_TYPE_P(pzval)) {
+        zval rtn;
+        ZVAL_NULL(&rtn);
+        return rtn;
+    }
     return *pzval;
 
 }
 
-void depthAdd(int args,  char* types,  zval *value, zval *arr, ...) {
+void lycitea_helpers_common_depthadd(int args,  char* types,  zval *value, zval *arr, ...) {
 
     va_list argptr;
     va_start(argptr, arr);
@@ -114,7 +116,7 @@ void depthAdd(int args,  char* types,  zval *value, zval *arr, ...) {
     }
 }
 
-void z_strcat(zval *left, zval *right, zval *dest, zend_long interned)
+void lycitea_helpers_common_zvalcat(zval *left, zval *right, zval *dest, zend_long interned)
 {
     zend_string *odest = Z_STR_P(dest);
     zend_string *str = zend_string_alloc(Z_STRLEN_P(left) + Z_STRLEN_P(right), 0);

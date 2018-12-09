@@ -18,5 +18,6 @@
 #ifndef PHP_LYCITEA_HELPERS_ROUTER_H
 #define PHP_LYCITEA_HELPERS_ROUTER_H
 
-
+void lycitea_route_simple_add_route(zval *, zval *, zval *, zend_long , zval *);
+void lycitea_route_simple_get_data(zval *, zval *);
 #endif
