@@ -38,9 +38,6 @@
 
 zend_class_entry *lycitea_route_simple_ce;
 
-void addRoute(zval *, zval *, zval *, zend_long , zval *);
-void getData(zval *, zval *);
-
 ZEND_BEGIN_ARG_INFO_EX(lycitea_route_simple_construct_arginfo, 0, 0, 0)
 ZEND_ARG_INFO(0, runmode)
 ZEND_END_ARG_INFO()
@@ -106,7 +103,7 @@ PHP_METHOD(lycitea_route_simple, addRoute) {
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zzz|l", &httpMethod, &route, &handler, &mode) == FAILURE) {
         return;
     }
-    addRoute(httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(httpMethod, route, handler, mode, self);
 
 }
 
@@ -118,14 +115,17 @@ PHP_METHOD(lycitea_route_simple, addGroup) {
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz", &prefix, &callback) == FAILURE) {
         return;
     }
-    zval *prevGroupPrefix = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), 1, NULL);
+    zval *groupPrefix = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), 1, NULL);
+    zval curGroupPrefix;
+    ZVAL_ZVAL(&curGroupPrefix, groupPrefix, 1, 0);
     smart_str joinPrefix = {0};
-    smart_str_appendl(&joinPrefix, Z_STRVAL_P(prevGroupPrefix), Z_STRLEN_P(prevGroupPrefix));
+    smart_str_appendl(&joinPrefix, Z_STRVAL(curGroupPrefix), Z_STRLEN(curGroupPrefix));
     smart_str_appendl(&joinPrefix, Z_STRVAL_P(prefix), Z_STRLEN_P(prefix));
     smart_str_0(&joinPrefix);
     zval newPrefix;
     ZVAL_STRING(&newPrefix, joinPrefix.s->val);
-    zend_update_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), &newPrefix);
+    zend_update_property_string(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), joinPrefix.s->val);
+    smart_str_free(&joinPrefix);
     zend_fcall_info_cache fcc;
     zend_string *key = NULL;
     if (!zend_is_callable_ex(callback, NULL, 0, &key, &fcc, NULL)) {
@@ -135,6 +135,8 @@ PHP_METHOD(lycitea_route_simple, addGroup) {
     zval  retval;
     zend_call_method_with_1_params(NULL, NULL, &(fcc.function_handler), "callback", &retval, self);
     zval_ptr_dtor(&newPrefix);
+    zend_update_property_string(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), Z_STRVAL(curGroupPrefix));
+    zval_ptr_dtor(&curGroupPrefix);
 }
 
 
@@ -148,9 +150,9 @@ PHP_METHOD(lycitea_route_simple, dispatch) {
 
     zval routeData;
     array_init(&routeData);
-    getData(self, &routeData);
+    lycitea_route_simple_get_data(self, &routeData);
 
-    zval tmpHandler = depthFind(3, "lss", &routeData, 0, Z_STRVAL_P(httpMethod), Z_STRVAL_P(uri));
+    zval tmpHandler = lycitea_helpers_common_depthfind(3, "lss", &routeData, 0, Z_STRVAL_P(httpMethod), Z_STRVAL_P(uri));
     zval rtn;
     array_init(&rtn);
     if(IS_NULL != Z_TYPE(tmpHandler)){
@@ -165,7 +167,7 @@ PHP_METHOD(lycitea_route_simple, dispatch) {
         RETURN_ZVAL(&rtn, 1, 1);
     }
 
-    zval routeInfo = depthFind(2, "ls", &routeData, 1, Z_STRVAL_P(httpMethod));
+    zval routeInfo = lycitea_helpers_common_depthfind(2, "ls", &routeData, 1, Z_STRVAL_P(httpMethod));
     if(IS_ARRAY == Z_TYPE(routeInfo)){
         zval *entry;
         ZEND_HASH_FOREACH_VAL(Z_ARRVAL(routeInfo), entry){
@@ -182,12 +184,12 @@ PHP_METHOD(lycitea_route_simple, dispatch) {
                 continue;
             }
             zend_long count = zend_array_count(Z_ARRVAL(subpats));
-            zval tmpHandler = depthFind(3, "sll", entry, "routeMap", count, 0);
+            zval tmpHandler = lycitea_helpers_common_depthfind(3, "sll", entry, "routeMap", count, 0);
             zval handler;
             ZVAL_COPY(&handler, &tmpHandler);
             add_next_index_long(&rtn, 1);
             add_next_index_zval(&rtn, &handler);
-            zval varNames = depthFind(3, "sll", entry, "routeMap", count, 1);
+            zval varNames = lycitea_helpers_common_depthfind(3, "sll", entry, "routeMap", count, 1);
 
             zval *var, vars;
             array_init(&vars);
@@ -220,7 +222,7 @@ PHP_METHOD(lycitea_route_simple, get) {
     zval httpMethod;
     array_init(&httpMethod);
     add_next_index_string(&httpMethod, "GET");
-    addRoute(&httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(&httpMethod, route, handler, mode, self);
 }
 
 PHP_METHOD(lycitea_route_simple, post) {
@@ -233,7 +235,7 @@ PHP_METHOD(lycitea_route_simple, post) {
     zval httpMethod;
     array_init(&httpMethod);
     add_next_index_string(&httpMethod, "POST");
-    addRoute(&httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(&httpMethod, route, handler, mode, self);
 }
 
 PHP_METHOD(lycitea_route_simple, put) {
@@ -246,7 +248,7 @@ PHP_METHOD(lycitea_route_simple, put) {
     zval httpMethod;
     array_init(&httpMethod);
     add_next_index_string(&httpMethod, "PUT");
-    addRoute(&httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(&httpMethod, route, handler, mode, self);
 }
 
 PHP_METHOD(lycitea_route_simple, delete) {
@@ -259,7 +261,7 @@ PHP_METHOD(lycitea_route_simple, delete) {
     zval httpMethod;
     array_init(&httpMethod);
     add_next_index_string(&httpMethod, "DELETE");
-    addRoute(&httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(&httpMethod, route, handler, mode, self);
 }
 
 PHP_METHOD(lycitea_route_simple, patch) {
@@ -272,7 +274,7 @@ PHP_METHOD(lycitea_route_simple, patch) {
     zval httpMethod;
     array_init(&httpMethod);
     add_next_index_string(&httpMethod, "PATCH");
-    addRoute(&httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(&httpMethod, route, handler, mode, self);
 }
 
 PHP_METHOD(lycitea_route_simple, head) {
@@ -285,7 +287,7 @@ PHP_METHOD(lycitea_route_simple, head) {
     zval httpMethod;
     array_init(&httpMethod);
     add_next_index_string(&httpMethod, "HEAD");
-    addRoute(&httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(&httpMethod, route, handler, mode, self);
 }
 
 PHP_METHOD(lycitea_route_simple, options) {
@@ -298,7 +300,7 @@ PHP_METHOD(lycitea_route_simple, options) {
     zval httpMethod;
     array_init(&httpMethod);
     add_next_index_string(&httpMethod, "OPTIONS");
-    addRoute(&httpMethod, route, handler, mode, self);
+    lycitea_route_simple_add_route(&httpMethod, route, handler, mode, self);
 }
 
 zend_function_entry lycitea_route_simple[] = {
@@ -320,7 +322,7 @@ LYCITEA_STARTUP_FUNCTION(route_simple) {
     zend_class_entry ce;
     INIT_CLASS_ENTRY(ce, "Lycitea\\Route\\Simple", lycitea_route_simple);
     lycitea_route_simple_ce = zend_register_internal_class_ex(&ce, NULL);
-    zend_declare_property_string(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), "", ZEND_ACC_PROTECTED);
+    zend_declare_property_string(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), "", ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
     zend_declare_property_null(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_STATICROUTE), ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
     zend_declare_property_null(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_REGEXROUTE), ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
     zend_declare_property_long(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_RUNMODE), LYCITEA_ROUTE_SIMPLE_RUN_STRICT, ZEND_ACC_FINAL| ZEND_ACC_PRIVATE);

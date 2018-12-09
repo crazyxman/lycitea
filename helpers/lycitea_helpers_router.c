@@ -49,9 +49,7 @@
 #define ROUTER_VARIABLE_REGEX              "\\{ \\s* ([a-zA-Z_][a-zA-Z0-9_-]*) \\s* (?: : \\s* ([^{}]*(?:\\{(?-1)\\}[^{}]*)*) )? \\}"
 #define ROUTER_DEFAULT_REGEX      "[^/]+"
 
-void z_strcat(zval *, zval *, zval *, zend_long);
-
-int matches(zend_string *regex, zval *routeStr)
+int lycitea_route_simple_matches(zend_string *regex, zval *routeStr)
 {
 
     smart_str pattern = {0};
@@ -75,7 +73,7 @@ int matches(zend_string *regex, zval *routeStr)
     return IS_TRUE;
 }
 
-void addStaticRoute(zval *httpMethods, zval *routeData, zval *handler, zval *obj)
+void lycitea_route_simple_add_staticroute(zval *httpMethods, zval *routeData, zval *handler, zval *obj)
 {
 
     zval *routeStr = zend_hash_index_find(Z_ARRVAL_P(routeData), 0);
@@ -85,7 +83,7 @@ void addStaticRoute(zval *httpMethods, zval *routeData, zval *handler, zval *obj
     zval *entry = NULL;
     ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(httpMethods), entry){
         if(Z_LVAL_P(runMode) == LYCITEA_ROUTE_SIMPLE_RUN_STRICT){
-            zval sRoute = depthFind(2, "ss", sRoutes, Z_STRVAL_P(entry), Z_STRVAL_P(routeStr));
+            zval sRoute = lycitea_helpers_common_depthfind(2, "ss", sRoutes, Z_STRVAL_P(entry), Z_STRVAL_P(routeStr));
             if(IS_NULL != Z_TYPE(sRoute)){
                 char excmsg[LYCITEA_MAX_MSG_EXCEPTION];
                 snprintf(excmsg, LYCITEA_MAX_MSG_EXCEPTION, "Cannot register two routes matching \"%s\" for method \"%s\"", Z_STRVAL_P(routeStr), Z_STRVAL_P(entry));
@@ -97,7 +95,7 @@ void addStaticRoute(zval *httpMethods, zval *routeData, zval *handler, zval *obj
             if(NULL != rRoute && IS_ARRAY == Z_TYPE_P(rRoute)){
                 zend_string *key = NULL;
                 ZEND_HASH_FOREACH_STR_KEY(Z_ARRVAL_P(rRoute), key){
-                    u_short isMatch = matches(key, routeStr);
+                    u_short isMatch = lycitea_route_simple_matches(key, routeStr);
                     if(IS_TRUE == isMatch){
                         char excmsg[LYCITEA_MAX_MSG_EXCEPTION];
                         snprintf(excmsg, LYCITEA_MAX_MSG_EXCEPTION, "Static route \"%s\" is shadowed by previously defined variable route \"%s\" for method \"%s\"", Z_STRVAL_P(routeStr), ZSTR_VAL(key), Z_STRVAL_P(entry));
@@ -107,12 +105,12 @@ void addStaticRoute(zval *httpMethods, zval *routeData, zval *handler, zval *obj
                 }ZEND_HASH_FOREACH_END();
             }
         }
-        depthAdd(2, "ss", handler, sRoutes, Z_STRVAL_P(entry), Z_STRVAL_P(routeStr));
+        lycitea_helpers_common_depthadd(2, "ss", handler, sRoutes, Z_STRVAL_P(entry), Z_STRVAL_P(routeStr));
     }ZEND_HASH_FOREACH_END();
 
 }
 
-void addVariableRoute(zval *httpMethods, zval *routeDatas, zval *handler, zval *obj)
+void lycitea_route_simple_add_regexroute(zval *httpMethods, zval *routeDatas, zval *handler, zval *obj)
 {
     zval *entry = NULL, variables;
     smart_str regex = {0};
@@ -186,7 +184,7 @@ void addVariableRoute(zval *httpMethods, zval *routeDatas, zval *handler, zval *
     zval *rRoutes = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_REGEXROUTE), 1, NULL);
     ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(httpMethods), entry){
         if(Z_LVAL_P(runMode) == LYCITEA_ROUTE_SIMPLE_RUN_STRICT){
-            zval regexMap = depthFind(2, "ss", rRoutes, Z_STRVAL_P(entry), regex.s->val);
+            zval regexMap = lycitea_helpers_common_depthfind(2, "ss", rRoutes, Z_STRVAL_P(entry), regex.s->val);
             if(IS_NULL != Z_TYPE(regexMap)){
                 char excmsg[LYCITEA_MAX_MSG_EXCEPTION];
                 snprintf(excmsg, LYCITEA_MAX_MSG_EXCEPTION, "Cannot register two routes matching \"%s\" for method \"%s\"", regex.s->val, Z_STRVAL_P(entry));
@@ -199,14 +197,14 @@ void addVariableRoute(zval *httpMethods, zval *routeDatas, zval *handler, zval *
         array_init(&tmpArr);
         add_assoc_zval(&tmpArr, "variables", &variables);
         add_assoc_zval(&tmpArr, "handler", handler);
-        depthAdd(2, "ss", &tmpArr, rRoutes, Z_STRVAL_P(entry), regex.s->val);
+        lycitea_helpers_common_depthadd(2, "ss", &tmpArr, rRoutes, Z_STRVAL_P(entry), regex.s->val);
     }ZEND_HASH_FOREACH_END();
     smart_str_free(&regex);
 
 }
 
 
-void parsePlaceholders(char *route, zval *placeholders) {
+void lycitea_route_simple_parse_placeholders(char *route, zval *placeholders) {
 
     char *pattern = "~"
                     ROUTER_VARIABLE_REGEX
@@ -240,7 +238,7 @@ void parsePlaceholders(char *route, zval *placeholders) {
         {
             zval subArr, fn_return;
             array_init(&subArr);
-            zval zeroOne = depthFind(2, "ll", entry, 0, 1);
+            zval zeroOne = lycitea_helpers_common_depthfind(2, "ll", entry, 0, 1);
             if (Z_LVAL(zeroOne) > Z_LVAL(offset)) {
                 zval diffVal;
                 ZVAL_LONG(&diffVal, Z_LVAL(zeroOne) - Z_LVAL(offset));
@@ -251,11 +249,11 @@ void parsePlaceholders(char *route, zval *placeholders) {
                 call_user_function_ex(&EG(function_table), NULL, &fn_substr, &fn_return, 3, fn_params, 1, NULL);
                 add_next_index_zval(placeholders, &fn_return);
             }
-            zval oneZero = depthFind(2, "ll", entry, 1, 0);
+            zval oneZero = lycitea_helpers_common_depthfind(2, "ll", entry, 1, 0);
             zval_copy_ctor_func(&oneZero);
             add_next_index_zval(&subArr, &oneZero);
 
-            zval twoZero = depthFind(2, "ll", entry, 2, 0);
+            zval twoZero = lycitea_helpers_common_depthfind(2, "ll", entry, 2, 0);
             if (IS_STRING == Z_TYPE(twoZero)) {
                 zval_copy_ctor_func(&twoZero);
                 add_next_index_zval(&subArr, &twoZero);
@@ -265,7 +263,7 @@ void parsePlaceholders(char *route, zval *placeholders) {
             }
             add_next_index_zval(placeholders, &subArr);
 
-            zval zeroZero = depthFind(2, "ll", entry, 0, 0);
+            zval zeroZero = lycitea_helpers_common_depthfind(2, "ll", entry, 0, 0);
             Z_LVAL(offset) = Z_LVAL(zeroOne) + Z_STRLEN(zeroZero);
 
         }ZEND_HASH_FOREACH_END();
@@ -291,7 +289,7 @@ void parsePlaceholders(char *route, zval *placeholders) {
 
 }
 
-void  parse(zval *route, zval *return_value)
+void  lycitea_route_simple_parse(zval *route, zval *return_value)
 {
     zend_string *cutRoute = php_trim(Z_STR_P(route), ZEND_STRL("]"), 2);
     zend_long numOptionals = Z_STRLEN_P(route) - ZSTR_LEN(cutRoute);
@@ -302,7 +300,11 @@ void  parse(zval *route, zval *return_value)
     pcre_cache_entry *pce;
     zval chars;
     if ((pce = pcre_get_compiled_regex_cache(regex)) != NULL) {
+#if PHP_VERSION_ID >= 70200
+        php_pcre_split_impl(pce, cutRoute, &chars, -1, 0);
+#else
         php_pcre_split_impl(pce, ZSTR_VAL(cutRoute), ZSTR_LEN(cutRoute), &chars, -1, 0);
+#endif
     }
     zend_string_release(regex);
     if (numOptionals != (zend_array_count(Z_ARR(chars)) - 1)) {
@@ -352,7 +354,7 @@ void  parse(zval *route, zval *return_value)
         smart_str_0(&currentRoute);
         zval placeholders;
         array_init(&placeholders);
-        parsePlaceholders(currentRoute.s->val, &placeholders);
+        lycitea_route_simple_parse_placeholders(currentRoute.s->val, &placeholders);
         add_next_index_zval(return_value, &placeholders);
 
     }ZEND_HASH_FOREACH_END();
@@ -361,17 +363,17 @@ void  parse(zval *route, zval *return_value)
 
 }
 
-void addRoute(zval *httpMethod, zval *route, zval *handler, zend_long mode, zval *obj)
+void lycitea_route_simple_add_route(zval *httpMethod, zval *route, zval *handler, zend_long mode, zval *obj)
 {
 
     zval *prefix = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), 0, NULL);
-    z_strcat(prefix, route, route, 1);
+    lycitea_helpers_common_zvalcat(prefix, route, route, 1);
     zval routeDatas;
     array_init(&routeDatas);
     if(mode == LYCITEA_ROUTE_SIMPLE_STATIC){
-        depthAdd(2, "ll", route, &routeDatas, 0, 0);
+        lycitea_helpers_common_depthadd(2, "ll", route, &routeDatas, 0, 0);
     }else{
-        parse(route, &routeDatas);
+        lycitea_route_simple_parse(route, &routeDatas);
     }
     if(IS_STRING == Z_TYPE_P(httpMethod)){
         convert_to_array(httpMethod);
@@ -380,12 +382,12 @@ void addRoute(zval *httpMethod, zval *route, zval *handler, zend_long mode, zval
         zval *entry;
         ZEND_HASH_FOREACH_VAL(Z_ARRVAL(routeDatas), entry){
             if(mode == LYCITEA_ROUTE_SIMPLE_STATIC){
-                addStaticRoute(httpMethod, entry, handler, obj);
+                lycitea_route_simple_add_staticroute(httpMethod, entry, handler, obj);
             }else{
                 if(zend_array_count(Z_ARRVAL_P(entry)) == 1){
-                    addStaticRoute(httpMethod, entry, handler, obj);
+                    lycitea_route_simple_add_staticroute(httpMethod, entry, handler, obj);
                 }else{
-                    addVariableRoute(httpMethod, entry, handler, obj);
+                    lycitea_route_simple_add_regexroute(httpMethod, entry, handler, obj);
                 }
             }
         }ZEND_HASH_FOREACH_END();
@@ -393,7 +395,7 @@ void addRoute(zval *httpMethod, zval *route, zval *handler, zend_long mode, zval
     zval_ptr_dtor(&routeDatas);
 }
 
-void getData(zval *obj, zval *return_value)
+void lycitea_route_simple_get_data(zval *obj, zval *return_value)
 {
 
     zval *sRoutes = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_STATICROUTE), 1, NULL);

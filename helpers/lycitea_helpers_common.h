@@ -18,6 +18,7 @@
 
 #ifndef PHP_LYCITEA_HELPERS_COMMON_H
 #define PHP_LYCITEA_HELPERS_COMMON_H
-zval depthFind(int, char* ,zval *, ...);
-void depthAdd(int ,  char* ,  zval *, zval *, ...);
+zval lycitea_helpers_common_depthfind(int, char* ,zval *, ...);
+void lycitea_helpers_common_depthadd(int ,  char* ,  zval *, zval *, ...);
+void lycitea_helpers_common_zvalcat(zval *, zval *, zval *, zend_long);
 #endif
