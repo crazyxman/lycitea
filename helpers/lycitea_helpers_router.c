@@ -105,6 +105,7 @@ void lycitea_route_simple_add_staticroute(zval *httpMethods, zval *routeData, zv
                 }ZEND_HASH_FOREACH_END();
             }
         }
+        zval_add_ref(handler);
         lycitea_helpers_common_depthadd(2, "ss", handler, sRoutes, Z_STRVAL_P(entry), Z_STRVAL_P(routeStr));
     }ZEND_HASH_FOREACH_END();
 
@@ -400,7 +401,6 @@ void lycitea_route_simple_get_data(zval *obj, zval *return_value)
 
     zval *sRoutes = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_STATICROUTE), 1, NULL);
     zval *rRoutes = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_REGEXROUTE), 1, NULL);
-    zval_add_ref(sRoutes);
     add_next_index_zval(return_value, sRoutes);
     if(IS_NULL == Z_TYPE_P(rRoutes)){
         zval emptyArr;
