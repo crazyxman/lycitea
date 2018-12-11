@@ -12,7 +12,7 @@ $./configure --with-php-config=/path/to/php-config
 $make && make install
 ```
 ### Performance
-Dynamic route is faster than <a href="https://github.com/nikic/FastRoute" target="_blank">FastRoute</a> by from 73 times  to 92 times. Moreover static route performes better than Dynamic route.
+TO DO
 
 ### Router Usage
 Here's a basic usage example:
@@ -41,7 +41,7 @@ $lyciroute->addGroup('/h5', function($lyciroute){
         $lyciroute->addRoute(['PUT', 'DELETE'], '/cd/ls', 'handle');
     }
 }
-
+$lyciroute->setGroupData();
 $routeInfo = $lyciroute->dispatch($httpMethod, $uri);
 switch ($routeInfo[0]) {
     case 0:
