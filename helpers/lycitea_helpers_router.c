@@ -195,6 +195,7 @@ void lycitea_route_simple_add_regexroute(zval *httpMethods, zval *routeDatas, zv
         }
         zval tmpArr;
         array_init(&tmpArr);
+        zval_add_ref(handler);
         add_assoc_zval(&tmpArr, "variables", &variables);
         add_assoc_zval(&tmpArr, "handler", handler);
         lycitea_helpers_common_depthadd(2, "ss", &tmpArr, rRoutes, Z_STRVAL_P(entry), regex.s->val);
@@ -250,12 +251,12 @@ void lycitea_route_simple_parse_placeholders(char *route, zval *placeholders) {
                 add_next_index_zval(placeholders, &fn_return);
             }
             zval oneZero = lycitea_helpers_common_depthfind(2, "ll", entry, 1, 0);
-            zval_copy_ctor_func(&oneZero);
+            zval_add_ref(&oneZero);
             add_next_index_zval(&subArr, &oneZero);
 
             zval twoZero = lycitea_helpers_common_depthfind(2, "ll", entry, 2, 0);
             if (IS_STRING == Z_TYPE(twoZero)) {
-                zval_copy_ctor_func(&twoZero);
+                zval_add_ref(&twoZero);
                 add_next_index_zval(&subArr, &twoZero);
             } else {
                 is_use_deferegex = 1;
@@ -392,7 +393,6 @@ void lycitea_route_simple_add_route(zval *httpMethod, zval *route, zval *handler
             }
         }ZEND_HASH_FOREACH_END();
     }
-    zval_ptr_dtor(&routeDatas);
 }
 
 void lycitea_route_simple_get_data(zval *obj, zval *return_value)

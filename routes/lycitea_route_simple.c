@@ -81,9 +81,11 @@ PHP_METHOD(lycitea_route_simple, __construct) {
         RETURN_FALSE;
     }
 
-    zval staticRoutes, regexRoutes;
+    zval staticRoutes, regexRoutes, groupData;
     array_init(&staticRoutes);
     array_init(&regexRoutes);
+    array_init(&groupData);
+    zend_update_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_GROUPDATA), &groupData);
     zend_update_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_STATICROUTE), &staticRoutes);
     zend_update_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_REGEXROUTE), &regexRoutes);
     zend_update_property_long(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_RUNMODE), runmode);
@@ -148,11 +150,8 @@ PHP_METHOD(lycitea_route_simple, dispatch) {
         return;
     }
 
-    zval routeData;
-    array_init(&routeData);
-    lycitea_route_simple_get_data(self, &routeData);
-
-    zval tmpHandler = lycitea_helpers_common_depthfind(3, "lss", &routeData, 0, Z_STRVAL_P(httpMethod), Z_STRVAL_P(uri));
+    zval *routeData = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_GROUPDATA), 1, NULL);
+    zval tmpHandler = lycitea_helpers_common_depthfind(3, "lss", routeData, 0, Z_STRVAL_P(httpMethod), Z_STRVAL_P(uri));
     zval rtn;
     array_init(&rtn);
     if(IS_NULL != Z_TYPE(tmpHandler)){
@@ -163,11 +162,10 @@ PHP_METHOD(lycitea_route_simple, dispatch) {
         zval emptyArr;
         array_init(&emptyArr);
         add_next_index_zval(&rtn, &emptyArr);
-        zval_ptr_dtor(&routeData);
         RETURN_ZVAL(&rtn, 1, 1);
     }
 
-    zval routeInfo = lycitea_helpers_common_depthfind(2, "ls", &routeData, 1, Z_STRVAL_P(httpMethod));
+    zval routeInfo = lycitea_helpers_common_depthfind(2, "ls", routeData, 1, Z_STRVAL_P(httpMethod));
     if(IS_ARRAY == Z_TYPE(routeInfo)){
         zval *entry;
         ZEND_HASH_FOREACH_VAL(Z_ARRVAL(routeInfo), entry){
@@ -202,14 +200,21 @@ PHP_METHOD(lycitea_route_simple, dispatch) {
             }ZEND_HASH_FOREACH_END();
             zval_ptr_dtor(&subpats);
             add_next_index_zval(&rtn, &vars);
-            zval_ptr_dtor(&routeData);
             RETURN_ZVAL(&rtn, 1, 1);
          }ZEND_HASH_FOREACH_END();
     }
-    zval_ptr_dtor(&routeData);
     add_next_index_long(&rtn, 0);
     RETURN_ZVAL(&rtn, 1, 1);
 
+}
+
+PHP_METHOD(lycitea_route_simple, setGroupData) {
+    zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval routeData;
+    array_init(&routeData);
+    lycitea_route_simple_get_data(self, &routeData);
+    zend_update_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_GROUPDATA), &routeData);
 }
 
 PHP_METHOD(lycitea_route_simple, get) {
@@ -315,6 +320,7 @@ zend_function_entry lycitea_route_simple[] = {
     PHP_ME(lycitea_route_simple, patch, lycitea_route_simple_gppdpho_arginfo, ZEND_ACC_PUBLIC)
     PHP_ME(lycitea_route_simple, head, lycitea_route_simple_gppdpho_arginfo, ZEND_ACC_PUBLIC)
     PHP_ME(lycitea_route_simple, options, lycitea_route_simple_gppdpho_arginfo, ZEND_ACC_PUBLIC)
+    PHP_ME(lycitea_route_simple, setGroupData, lycitea_route_simple_construct_arginfo, ZEND_ACC_PUBLIC)
     {NULL, NULL, NULL}
 };
 
@@ -323,6 +329,7 @@ LYCITEA_STARTUP_FUNCTION(route_simple) {
     INIT_CLASS_ENTRY(ce, "Lycitea\\Route\\Simple", lycitea_route_simple);
     lycitea_route_simple_ce = zend_register_internal_class_ex(&ce, NULL);
     zend_declare_property_string(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), "", ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
+    zend_declare_property_string(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_GROUPDATA), "", ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
     zend_declare_property_null(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_STATICROUTE), ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
     zend_declare_property_null(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_REGEXROUTE), ZEND_ACC_FINAL | ZEND_ACC_PRIVATE);
     zend_declare_property_long(lycitea_route_simple_ce, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_RUNMODE), LYCITEA_ROUTE_SIMPLE_RUN_STRICT, ZEND_ACC_FINAL| ZEND_ACC_PRIVATE);
