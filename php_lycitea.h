@@ -53,6 +53,8 @@ extern PHPAPI void php_var_dump(zval **struc, int level);
 extern PHPAPI void php_debug_zval_dump(zval **struc, int level);
 
 ZEND_BEGIN_MODULE_GLOBALS(lycitea)
+    zval route_cache;
+    time_t pre_time;
 ZEND_END_MODULE_GLOBALS(lycitea)
 
 PHP_MINIT_FUNCTION(lycitea);
