@@ -21,4 +21,5 @@
 zval lycitea_helpers_common_depthfind(int, char* ,zval *, ...);
 void lycitea_helpers_common_depthadd(int ,  char* ,  zval *, zval *, ...);
 void lycitea_helpers_common_zvalcat(zval *, zval *, zval *, zend_long);
+int array_init_persistent(zval *);
 #endif

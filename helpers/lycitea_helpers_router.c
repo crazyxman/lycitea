@@ -367,7 +367,11 @@ void  lycitea_route_simple_parse(zval *route, zval *return_value)
 
 void lycitea_route_simple_add_route(zval *httpMethod, zval *route, zval *handler, zend_long mode, zval *obj)
 {
-
+    zval *version = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
     zval *prefix = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), 0, NULL);
     lycitea_helpers_common_zvalcat(prefix, route, route, 1);
     zval routeDatas;
@@ -471,6 +475,79 @@ void lycitea_route_simple_get_data(zval *obj, zval *return_value)
 
 }
 
+void lycitea_route_simple_get_persistentdata(zval *data, zval *return_value, zval *obj)
+{
+    zval dataVer;
+    array_init_persistent(&dataVer);
+    zval *ele;
+    ulong num_key;
+    ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(data), num_key, ele){
+        zval methods;
+        array_init_persistent(&methods);
+        zend_string *str_key;
+        zval *sub_ele;
+        if(0 == num_key){
+            ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(ele), str_key, sub_ele){
+                zval uriMapHandle;
+                array_init_persistent(&uriMapHandle);
+                zend_string *sub_str_key;
+                zval *sub_sub_ele;
+                ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(sub_ele), sub_str_key, sub_sub_ele){
+                    zval copyval;
+                    ZVAL_PSTRING(&copyval, Z_STRVAL_P(sub_sub_ele));
+                    add_assoc_zval(&uriMapHandle, ZSTR_VAL(sub_str_key), &copyval);
+                }ZEND_HASH_FOREACH_END();
+                add_assoc_zval(&methods, ZSTR_VAL(str_key), &uriMapHandle);
+            }ZEND_HASH_FOREACH_END();
+            add_index_zval(&dataVer, 0, &methods);
+        }else{
+            ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(ele), str_key, sub_ele){
+                zval group;
+                array_init_persistent(&group);
+                ulong sub_num_key;
+                zval *sub_sub_ele;
+                ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(sub_ele), sub_num_key, sub_sub_ele){
+                    zval *regex = zend_hash_str_find(Z_ARRVAL_P(sub_sub_ele), "regex", sizeof("regex") - 1);
+                    zval copyRegex;
+                    ZVAL_PSTRING(&copyRegex, Z_STRVAL_P(regex));
+                    zval subGroup;
+                    array_init_persistent(&subGroup);
+                    add_assoc_zval(&subGroup, "regex", &copyRegex);
+                    zval routeMap;
+                    array_init_persistent(&routeMap);
+                    ulong sub_sub_num_key;
+                    zval *sub_sub_sub_ele;
+                    zval *tmpRouteMap = zend_hash_str_find(Z_ARRVAL_P(sub_sub_ele), "routeMap", sizeof("routeMap") - 1);
+                    ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(tmpRouteMap), sub_sub_num_key, sub_sub_sub_ele){
+                        zval tmpArr;
+                        array_init_persistent(&tmpArr);
+                        zval *handle = zend_hash_index_find(Z_ARRVAL_P(sub_sub_sub_ele), 0);
+                        zval copyHandle;
+                        ZVAL_PSTRING(&copyHandle, Z_STRVAL_P(handle));
+                        add_next_index_zval(&tmpArr, &copyHandle);
+                        zval subTmpArr;
+                        array_init_persistent(&subTmpArr);
+                        zend_string *str_key;
+                        zval *vars = zend_hash_index_find(Z_ARRVAL_P(sub_sub_sub_ele), 1);
+                        ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(vars), str_key, ele){
+                            zval copyVar;
+                            ZVAL_PSTRING(&copyVar, Z_STRVAL_P(ele));
+                            add_assoc_zval(&subTmpArr, ZSTR_VAL(str_key), &copyVar);
+                        }ZEND_HASH_FOREACH_END();
+                        add_next_index_zval(&tmpArr, &subTmpArr);
+                        add_index_zval(&routeMap, sub_sub_num_key, &tmpArr);
+                    }ZEND_HASH_FOREACH_END();
+                    add_assoc_zval(&subGroup, "routeMap", &routeMap);
+                    add_next_index_zval(&group, &subGroup);
+                }ZEND_HASH_FOREACH_END();
+                add_assoc_zval(&methods, ZSTR_VAL(str_key), &group);
+            }ZEND_HASH_FOREACH_END();
+            add_index_zval(&dataVer, 1, &methods);
+        }
+    }ZEND_HASH_FOREACH_END();
+    zval *version = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    add_assoc_zval(return_value, Z_STRVAL_P(version), &dataVer);
+}
 
 
 

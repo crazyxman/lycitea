@@ -131,6 +131,12 @@ void lycitea_helpers_common_zvalcat(zval *left, zval *right, zval *dest, zend_lo
     zend_string_release(odest);
 }
 
+int array_init_persistent(zval *arg)
+{
+    ZVAL_NEW_PERSISTENT_ARR(arg);
+    zend_hash_init(Z_ARRVAL_P(arg), 0, NULL, NULL, 1);
+    return SUCCESS;
+}
 
 
 
