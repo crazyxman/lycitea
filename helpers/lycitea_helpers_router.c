@@ -367,11 +367,7 @@ void  lycitea_route_simple_parse(zval *route, zval *return_value)
 
 void lycitea_route_simple_add_route(zval *httpMethod, zval *route, zval *handler, zend_long mode, zval *obj)
 {
-    zval *version = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
-    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
-    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
-        return;
-    }
+
     zval *prefix = zend_read_property(Z_OBJCE_P(obj), obj, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_PREFIX), 0, NULL);
     lycitea_helpers_common_zvalcat(prefix, route, route, 1);
     zval routeDatas;

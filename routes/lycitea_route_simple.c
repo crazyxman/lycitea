@@ -75,7 +75,7 @@ PHP_METHOD(lycitea_route_simple, __construct) {
     zval *self = getThis();
     zend_class_entry *ce = Z_OBJCE_P(self);
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS(), "|lS", &runmode) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "|lS", &runmode, &version) == FAILURE) {
         return;
     }
 
@@ -101,10 +101,16 @@ PHP_METHOD(lycitea_route_simple, __destruct) {
 }
 
 PHP_METHOD(lycitea_route_simple, addRoute) {
+    zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
 
     zval *httpMethod, *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
-    zval *self = getThis();
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zzz|l", &httpMethod, &route, &handler, &mode) == FAILURE) {
         return;
     }
@@ -196,17 +202,18 @@ PHP_METHOD(lycitea_route_simple, dispatch) {
                 continue;
             }
             zend_long count = zend_array_count(Z_ARRVAL(subpats));
-            zval tmpHandler = lycitea_helpers_common_depthfind(3, "sll", entry, "routeMap", count, 0);
+            zval *routeMap = zend_hash_str_find(Z_ARRVAL_P(entry), "routeMap", strlen("routeMap"));
+            zval *pos = zend_hash_index_find(Z_ARRVAL_P(routeMap), count);
+            zval *tmpHandler = zend_hash_index_find(Z_ARRVAL_P(pos), 0);
             zval handler;
-            ZVAL_COPY(&handler, &tmpHandler);
+            ZVAL_COPY(&handler, tmpHandler);
             add_next_index_long(&rtn, 1);
             add_next_index_zval(&rtn, &handler);
-            zval varNames = lycitea_helpers_common_depthfind(3, "sll", entry, "routeMap", count, 1);
-
+            zval *varNames = zend_hash_index_find(Z_ARRVAL_P(pos), 1);
             zval *var, vars;
             array_init(&vars);
             zend_long i = 0;
-            ZEND_HASH_FOREACH_VAL(Z_ARRVAL(varNames), var){
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(varNames), var){
                 zval *tmpVal= zend_hash_index_find(Z_ARRVAL(subpats), ++i);
                 zval value;
                 ZVAL_COPY(&value, tmpVal);
@@ -245,6 +252,12 @@ PHP_METHOD(lycitea_route_simple, setGroupData) {
 
 PHP_METHOD(lycitea_route_simple, get) {
     zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
     zval *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz|l", &route, &handler, &mode) == FAILURE) {
@@ -258,6 +271,13 @@ PHP_METHOD(lycitea_route_simple, get) {
 
 PHP_METHOD(lycitea_route_simple, post) {
     zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
+
     zval *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz|l", &route, &handler, &mode) == FAILURE) {
@@ -271,6 +291,13 @@ PHP_METHOD(lycitea_route_simple, post) {
 
 PHP_METHOD(lycitea_route_simple, put) {
     zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
+
     zval *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz|l", &route, &handler, &mode) == FAILURE) {
@@ -284,6 +311,13 @@ PHP_METHOD(lycitea_route_simple, put) {
 
 PHP_METHOD(lycitea_route_simple, delete) {
     zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
+
     zval *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz|l", &route, &handler, &mode) == FAILURE) {
@@ -297,6 +331,12 @@ PHP_METHOD(lycitea_route_simple, delete) {
 
 PHP_METHOD(lycitea_route_simple, patch) {
     zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
     zval *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz|l", &route, &handler, &mode) == FAILURE) {
@@ -310,6 +350,13 @@ PHP_METHOD(lycitea_route_simple, patch) {
 
 PHP_METHOD(lycitea_route_simple, head) {
     zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
+
     zval *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz|l", &route, &handler, &mode) == FAILURE) {
@@ -323,6 +370,12 @@ PHP_METHOD(lycitea_route_simple, head) {
 
 PHP_METHOD(lycitea_route_simple, options) {
     zval *self = getThis();
+    zend_class_entry *ce = Z_OBJCE_P(self);
+    zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_ROUTE_SIMPLE_PROPERTY_NAME_VERSION), 1, NULL);
+    zval *dataVer = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(route_cache)), Z_STRVAL_P(version), Z_STRLEN_P(version));
+    if(NULL != dataVer && IS_ARRAY == Z_TYPE_P(dataVer)){
+        return;
+    }
     zval *route, *handler;
     zend_long  mode = LYCITEA_ROUTE_SIMPLE_STATIC;
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz|l", &route, &handler, &mode) == FAILURE) {
