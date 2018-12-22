@@ -28,9 +28,9 @@
 #include "ext/standard/php_string.h"
 
 #include "php_lycitea.h"
-#include "routes/lycitea_route_simple.h"
 #include "lycitea_exception.h"
 #include "helpers/lycitea_helpers_common.h"
+#include "caches/lycitea_cache_lru.h"
 
 
 ZEND_DECLARE_MODULE_GLOBALS(lycitea);
@@ -40,6 +40,11 @@ zend_function_entry lycitea_functions[] = {
         {NULL, NULL, NULL}
 };
 
+PHP_INI_BEGIN()
+    STD_PHP_INI_ENTRY("lycitea.lru_memory_limit", "4", PHP_INI_SYSTEM, OnUpdateLongGEZero, lru_cache.memory_limit, zend_lycitea_globals, lycitea_globals)
+    STD_PHP_INI_ENTRY("lycitea.lru_clean_cycle", "4", PHP_INI_SYSTEM, OnUpdateLongGEZero, lru_cache.clean_cycle, zend_lycitea_globals, lycitea_globals)
+PHP_INI_END();
+
 PHP_GINIT_FUNCTION(lycitea)
 {
      memset(lycitea_globals, 0, sizeof(*lycitea_globals));
@@ -47,22 +52,22 @@ PHP_GINIT_FUNCTION(lycitea)
 
 PHP_MINIT_FUNCTION(lycitea)
 {
-    LYCITEA_G(pre_time) = time(NULL);
-    array_init_persistent(&LYCITEA_G(route_cache));
-    REGISTER_LONG_CONSTANT("LYCITEA_ROUTE_SIMPLE_STATIC", 		LYCITEA_ROUTE_SIMPLE_STATIC, CONST_PERSISTENT | CONST_CS);
-    REGISTER_LONG_CONSTANT("LYCITEA_ROUTE_SIMPLE_REGEX", 		LYCITEA_ROUTE_SIMPLE_REGEX, CONST_PERSISTENT | CONST_CS);
-    REGISTER_LONG_CONSTANT("LYCITEA_ROUTE_SIMPLE_RUN_STRICT", 		LYCITEA_ROUTE_SIMPLE_RUN_STRICT, CONST_PERSISTENT | CONST_CS);
-    REGISTER_LONG_CONSTANT("LYCITEA_ROUTE_SIMPLE_RUN_FAST", 		LYCITEA_ROUTE_SIMPLE_RUN_FAST, CONST_PERSISTENT | CONST_CS);
+    REGISTER_INI_ENTRIES();
+    LYCITEA_G(lru_cache).prev_clean_time = time(NULL);
+    LYCITEA_G(lru_cache).count = 0;
+    LYCITEA_G(lru_cache).last_page_number = 0;
+    LYCITEA_G(lru_cache).memory_limit = (1024 * 1024 * LYCITEA_G(lru_cache).memory_limit);
+    array_init_persistent(&LYCITEA_G(lru_cache).versionMap);
 
-    LYCITEA_STARTUP(route_simple);
     LYCITEA_STARTUP(exception);
+    LYCITEA_STARTUP(cache_lru);
 
     return SUCCESS;
 }
 
 PHP_MSHUTDOWN_FUNCTION(lycitea)
 {
-    zend_hash_clean(Z_ARRVAL(LYCITEA_G(route_cache)));
+
     return SUCCESS;
 }
 
@@ -74,11 +79,7 @@ PHP_RINIT_FUNCTION(lycitea)
 
 PHP_RSHUTDOWN_FUNCTION(lycitea)
 {
-    time_t cur_time = time(NULL);
-    if( (cur_time - LYCITEA_G(pre_time)) > 3600 ){
-        zend_hash_clean(Z_ARRVAL(LYCITEA_G(route_cache)));
-        LYCITEA_G(pre_time) = cur_time;
-    }
+    lycitea_helpers_lru_destroy();
     return SUCCESS;
 }
 

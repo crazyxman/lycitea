@@ -48,7 +48,7 @@ zend_function_entry lycitea_exception_methods[] = {
 
 LYCITEA_STARTUP_FUNCTION(exception) {
     zend_class_entry ce;
-    zend_class_entry route_ce;
+    zend_class_entry cache_ce;
 
     INIT_CLASS_ENTRY(ce, "Lycitea\\Exception", lycitea_exception_methods);
     lycitea_exception_ce = zend_register_internal_class_ex(&ce, zend_exception_get_default());
@@ -56,9 +56,8 @@ LYCITEA_STARTUP_FUNCTION(exception) {
     zend_declare_property_long(lycitea_exception_ce, ZEND_STRL("code"), 0,	ZEND_ACC_PROTECTED);
     zend_declare_property_null(lycitea_exception_ce, ZEND_STRL("previous"),  ZEND_ACC_PROTECTED);
 
-    INIT_CLASS_ENTRY(route_ce, "Lycitea\\Exception\\Router", NULL);
-    lycitea_buildin_exceptions[LYCITEA_EXCEPTION_OFFSET(LYCITEA_ERR_ROUTE_FAILED)] = zend_register_internal_class_ex(&route_ce, lycitea_exception_ce);
-
+    INIT_CLASS_ENTRY(cache_ce, "Lycitea\\Exception\\Cache", NULL);
+    lycitea_buildin_exceptions[LYCITEA_EXCEPTION_OFFSET(LYCITEA_ERR_CACHE_FAILED)] = zend_register_internal_class_ex(&cache_ce, lycitea_exception_ce);
 
     return SUCCESS;
 }

@@ -70,10 +70,10 @@ if test "$PHP_LYCITEA" != "no"; then
 
 
 
-  PHP_NEW_EXTENSION(lycitea, lycitea.c    \
-    helpers/lycitea_helpers_common.c                  \
-    helpers/lycitea_helpers_router.c                  \
-    routes/lycitea_route_simple.c                  \
+  PHP_NEW_EXTENSION(lycitea, lycitea.c                  \
+    helpers/lycitea_helpers_common.c                    \
+    helpers/lycitea_helpers_lru.c                       \
+    caches/lycitea_cache_lru.c                          \
     lycitea_exception.c, $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
 
 fi
