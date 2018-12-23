@@ -1,0 +1,16 @@
+lycitea.lo: /media/psf/Home/dockerWorkspace/lycitea_new/lycitea.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/media/psf/Home/dockerWorkspace/lycitea_new $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /media/psf/Home/dockerWorkspace/lycitea_new/lycitea.c -o lycitea.lo 
+helpers/lycitea_helpers_common.lo: /media/psf/Home/dockerWorkspace/lycitea_new/helpers/lycitea_helpers_common.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/media/psf/Home/dockerWorkspace/lycitea_new $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /media/psf/Home/dockerWorkspace/lycitea_new/helpers/lycitea_helpers_common.c -o helpers/lycitea_helpers_common.lo 
+helpers/lycitea_helpers_lru.lo: /media/psf/Home/dockerWorkspace/lycitea_new/helpers/lycitea_helpers_lru.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/media/psf/Home/dockerWorkspace/lycitea_new $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /media/psf/Home/dockerWorkspace/lycitea_new/helpers/lycitea_helpers_lru.c -o helpers/lycitea_helpers_lru.lo 
+caches/lycitea_cache_lru.lo: /media/psf/Home/dockerWorkspace/lycitea_new/caches/lycitea_cache_lru.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/media/psf/Home/dockerWorkspace/lycitea_new $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /media/psf/Home/dockerWorkspace/lycitea_new/caches/lycitea_cache_lru.c -o caches/lycitea_cache_lru.lo 
+lycitea_exception.lo: /media/psf/Home/dockerWorkspace/lycitea_new/lycitea_exception.c
+	$(LIBTOOL) --mode=compile $(CC) -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -I. -I/media/psf/Home/dockerWorkspace/lycitea_new $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /media/psf/Home/dockerWorkspace/lycitea_new/lycitea_exception.c -o lycitea_exception.lo 
+$(phplibdir)/lycitea.la: ./lycitea.la
+	$(LIBTOOL) --mode=install cp ./lycitea.la $(phplibdir)
+
+./lycitea.la: $(shared_objects_lycitea) $(LYCITEA_SHARED_DEPENDENCIES)
+	$(LIBTOOL) --mode=link $(CC) $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ -export-dynamic -avoid-version -prefer-pic -module -rpath $(phplibdir) $(EXTRA_LDFLAGS) $(shared_objects_lycitea) $(LYCITEA_SHARED_LIBADD)
+

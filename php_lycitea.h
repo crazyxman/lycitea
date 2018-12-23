@@ -16,6 +16,8 @@
   +----------------------------------------------------------------------+
 */
 
+#include "helpers/lycitea_helpers_lru.h"
+
 #ifndef PHP_LYCITEA_H
 #define PHP_LYCITEA_H
 

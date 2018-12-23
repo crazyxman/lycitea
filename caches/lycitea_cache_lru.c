@@ -61,7 +61,7 @@ PHP_METHOD(lycitea_cache_lru, __construct) {
     if(0 >= numbers || 0 >= ZSTR_LEN(version)){
         char exc_cmsg[LYCITEA_MAX_MSG_EXCEPTION];
         if(0 >= numbers){
-            snprintf(exc_cmsg, LYCITEA_MAX_MSG_EXCEPTION, "lru cache numbers must be gte 0");
+            snprintf(exc_cmsg, LYCITEA_MAX_MSG_EXCEPTION, "lru cache numbers must be gt 0");
         }else{
             snprintf(exc_cmsg, LYCITEA_MAX_MSG_EXCEPTION, "lru cache version can not be empty");
         }
@@ -102,9 +102,9 @@ PHP_METHOD(lycitea_cache_lru, set) {
         zval arr, pvalue;
         array_init_persistent(&arr);
         ZVAL_PSTRING(&pvalue, ZSTR_VAL(value));
-        add_index_zval(&arr, 0, &pvalue);
+        zend_hash_index_add(Z_ARRVAL(arr), 0, &pvalue);
         add_index_long(&arr, 1, pageNumber);
-        add_assoc_zval(LYCITEA_G(lru_cache).value[index], ZSTR_VAL(key), &arr);
+        zend_hash_str_add(Z_ARRVAL_P(LYCITEA_G(lru_cache).value[index]), ZSTR_VAL(key), ZSTR_LEN(key), &arr);
     }else if(0 == newItem){
         zval *arr = zend_hash_str_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).value[index]), ZSTR_VAL(key), ZSTR_LEN(key));
         if(arr){
@@ -127,7 +127,7 @@ PHP_METHOD(lycitea_cache_lru, get) {
     }
 
     zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_VERSION), 1, NULL);
-    zval *index = zend_hash_find(Z_ARRVAL(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
+    zval *index = zend_hash_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
 
     if(NULL == index || IS_LONG != Z_TYPE_P(index)){
         RETURN_NULL();
@@ -156,7 +156,7 @@ PHP_METHOD(lycitea_cache_lru, delete) {
     }
 
     zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_VERSION), 1, NULL);
-    zval *index = zend_hash_find(Z_ARRVAL(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
+    zval *index = zend_hash_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
     if(NULL == index || IS_LONG != Z_TYPE_P(index)){
         RETURN_FALSE;
     }
@@ -165,7 +165,7 @@ PHP_METHOD(lycitea_cache_lru, delete) {
         RETURN_FALSE;
     }
     zval str_null;
-    ZVAL_PSTRING(&str_null, "");
+    ZVAL_NULL(&str_null);
     zend_hash_index_update(Z_ARRVAL_P(arr), 0, &str_null);
     RETURN_FALSE;
 }
@@ -175,22 +175,33 @@ PHP_METHOD(lycitea_cache_lru, flush) {
     zval *self = getThis();
     zend_class_entry *ce = Z_OBJCE_P(self);
     zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_VERSION), 1, NULL);
-    zval *index = zend_hash_find(Z_ARRVAL(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
-    ZVAL_BOOL(return_value, IS_FALSE);
+    zval *index = zend_hash_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
     if(NULL == index || IS_LONG != Z_TYPE_P(index)){
-        RETURN_BOOL(return_value);
+        RETURN_FALSE;
     }
-    ZVAL_BOOL(return_value, IS_TRUE);
-    RETURN_BOOL(return_value);
-
-
+    zval *rtn = LYCITEA_G(lru_cache).value[Z_LVAL_P(index)];
+    zval *entry;
+    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(rtn), entry){
+        zval str_null;
+        ZVAL_NULL(&str_null);
+        zend_hash_index_update(Z_ARRVAL_P(entry), 0, &str_null);
+    }ZEND_HASH_FOREACH_END();
+    RETURN_TRUE;
 }
 
 PHP_METHOD(lycitea_cache_lru, versions) {
     zval *self = getThis();
     zend_class_entry *ce = Z_OBJCE_P(self);
-    zval versions = LYCITEA_G(lru_cache).versionMap;
-    RETURN_ZVAL(&versions, 1, 0);
+    zval *versions = LYCITEA_G(lru_cache).versionMap;
+
+    zend_string *key = NULL;
+    zval *entry;
+    array_init_persistent(return_value);
+    ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(versions), key, entry){
+        add_assoc_zval(return_value, ZSTR_VAL(key), entry);
+    }ZEND_HASH_FOREACH_END();
+    RETVAL_ZVAL(return_value, 1, 0);
+
 }
 
 
@@ -199,18 +210,17 @@ PHP_METHOD(lycitea_cache_lru, all) {
     zval *self = getThis();
     zend_class_entry *ce = Z_OBJCE_P(self);
     zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_VERSION), 1, NULL);
-    zval *index = zend_hash_find(Z_ARRVAL(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
-
+    zval *index = zend_hash_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
     if(NULL == index || IS_LONG != Z_TYPE_P(index)){
         RETURN_NULL();
     }
     zval *rtn = LYCITEA_G(lru_cache).value[Z_LVAL_P(index)];
     zend_string *key = NULL;
     zval *entry;
-    array_init(return_value);
+    array_init_persistent(return_value);
     ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(rtn), key, entry){
         zval *value = zend_hash_index_find(Z_ARRVAL_P(entry), 0);
-        if(Z_STRLEN_P(value) > 0){
+        if(IS_NULL != Z_TYPE_P(value)){
             add_assoc_zval(return_value, ZSTR_VAL(key), value);
         }
     }ZEND_HASH_FOREACH_END();

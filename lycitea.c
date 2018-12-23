@@ -41,8 +41,8 @@ zend_function_entry lycitea_functions[] = {
 };
 
 PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("lycitea.lru_memory_limit", "4", PHP_INI_SYSTEM, OnUpdateLongGEZero, lru_cache.memory_limit, zend_lycitea_globals, lycitea_globals)
-    STD_PHP_INI_ENTRY("lycitea.lru_clean_cycle", "4", PHP_INI_SYSTEM, OnUpdateLongGEZero, lru_cache.clean_cycle, zend_lycitea_globals, lycitea_globals)
+    STD_PHP_INI_ENTRY("lycitea.lru_memory_limit", "2", PHP_INI_SYSTEM, OnUpdateLongGEZero, lru_cache.memory_limit, zend_lycitea_globals, lycitea_globals)
+    STD_PHP_INI_ENTRY("lycitea.lru_clean_cycle", "3600", PHP_INI_SYSTEM, OnUpdateLongGEZero, lru_cache.clean_cycle, zend_lycitea_globals, lycitea_globals)
 PHP_INI_END();
 
 PHP_GINIT_FUNCTION(lycitea)
@@ -57,7 +57,8 @@ PHP_MINIT_FUNCTION(lycitea)
     LYCITEA_G(lru_cache).count = 0;
     LYCITEA_G(lru_cache).last_page_number = 0;
     LYCITEA_G(lru_cache).memory_limit = (1024 * 1024 * LYCITEA_G(lru_cache).memory_limit);
-    array_init_persistent(&LYCITEA_G(lru_cache).versionMap);
+    LYCITEA_G(lru_cache).versionMap = pemalloc(sizeof(zval), 1);
+    array_init_persistent(LYCITEA_G(lru_cache).versionMap);
 
     LYCITEA_STARTUP(exception);
     LYCITEA_STARTUP(cache_lru);
@@ -67,19 +68,23 @@ PHP_MINIT_FUNCTION(lycitea)
 
 PHP_MSHUTDOWN_FUNCTION(lycitea)
 {
-
     return SUCCESS;
 }
 
 PHP_RINIT_FUNCTION(lycitea)
 {
-
     return SUCCESS;
 }
 
 PHP_RSHUTDOWN_FUNCTION(lycitea)
 {
-    lycitea_helpers_lru_destroy();
+    if(LYCITEA_G(lru_cache).clean_cycle > 60){
+        time_t timestamp = time(NULL);
+        if(( (timestamp - LYCITEA_G(lru_cache).prev_clean_time)) > LYCITEA_G(lru_cache).clean_cycle){
+            lycitea_helpers_lru_destroy(timestamp);
+        }
+    }
+
     return SUCCESS;
 }
 

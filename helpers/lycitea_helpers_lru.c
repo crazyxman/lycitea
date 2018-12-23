@@ -95,24 +95,19 @@ void lycitea_helpers_lru_flush(lru_queue* queue, lru_hash* hash, zval *value)
 
 }
 
-void lycitea_helpers_lru_destroy()
+void lycitea_helpers_lru_destroy(time_t timestamp)
 {
-    if(LYCITEA_G(lru_cache).clean_cycle > 60){
-        time_t timestamp = time(NULL);
-        if(( (timestamp - LYCITEA_G(lru_cache).prev_clean_time)) > LYCITEA_G(lru_cache).clean_cycle){
-            zval *index;
-            ZEND_HASH_FOREACH_VAL(Z_ARRVAL(LYCITEA_G(lru_cache).versionMap), index){
-                lycitea_helpers_lru_flush(LYCITEA_G(lru_cache).queue[Z_LVAL_P(index)], LYCITEA_G(lru_cache).hash[Z_LVAL_P(index)], LYCITEA_G(lru_cache).value[Z_LVAL_P(index)]);
-            }ZEND_HASH_FOREACH_END();
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue, 0);
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).hash, 0);
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).value, 0);
-            LYCITEA_G(lru_cache).count = 0;
-            LYCITEA_G(lru_cache).last_page_number = 0;
-            LYCITEA_G(lru_cache).memory_used = 0;
-            zend_hash_clean(Z_ARRVAL(LYCITEA_G(lru_cache).versionMap));
-            LYCITEA_G(lru_cache).prev_clean_time = timestamp;
-        }
+    zval *index;
+    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), index){
+        lycitea_helpers_lru_flush(LYCITEA_G(lru_cache).queue[Z_LVAL_P(index)], LYCITEA_G(lru_cache).hash[Z_LVAL_P(index)], LYCITEA_G(lru_cache).value[Z_LVAL_P(index)]);
+    }ZEND_HASH_FOREACH_END();
+    if(index){
+        LYCITEA_G(lru_cache).count = 0;
+        LYCITEA_G(lru_cache).last_page_number = 0;
+        LYCITEA_G(lru_cache).memory_used = 0;
+        zval *versionMap = LYCITEA_G(lru_cache).versionMap;
+        zend_hash_clean(Z_ARRVAL_P(versionMap));
+        LYCITEA_G(lru_cache).prev_clean_time = timestamp;
     }
 }
 
@@ -123,7 +118,7 @@ lru_qnode* lycitea_helpers_lru_create_qnode(lru_queue* queue, char* key, int pag
         return NULL;
     }
     temp->pageNumber = pageNumber;
-    temp->key = estrdup(key);
+    temp->key = key;
     temp->prev = temp->next = NULL;
     return temp;
 }
@@ -177,20 +172,6 @@ void lycitea_helpers_lru_del_queue( lru_queue* queue )
     lycitea_helpers_lru_free_memory( temp , sizeof(lru_qnode));
     queue->count--;
 }
-
-/*
-void lycitea_helpers_lru_del_qnode( lru_queue* queue, lru_qnode* qnode )
-{
-    if(qnode->prev){
-        qnode->prev->next = qnode->next;
-    }else if(qnode->next){
-        qnode->next->prev = NULL;
-        queue->front = qnode->next;
-    }
-    lycitea_helpers_lru_free_memory( qnode , sizeof(lru_qnode));
-    queue->count--;
-}
-*/
 
 int lycitea_helpers_lru_enqueue( lru_queue* queue, lru_hash* hash, int pageNumber, char* key, HashTable *ht)
 {
@@ -251,7 +232,7 @@ int lycitea_helpers_lru_referencepage( lru_queue* queue, lru_hash* hash, int pag
 int lycitea_helpers_lru_apply_cache(char* version, int numbers)
 {
 
-    zval *index = zend_hash_str_find(Z_ARRVAL(LYCITEA_G(lru_cache).versionMap), version, strlen(version));
+    zval *index = zend_hash_str_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), version, strlen(version));
     if(NULL == index || IS_UNDEF == Z_TYPE_P(index)){
         int count = LYCITEA_G(lru_cache).count;
         void *queued, *hashed, *valued;
@@ -298,7 +279,7 @@ int lycitea_helpers_lru_apply_cache(char* version, int numbers)
             return -1;
         }
         LYCITEA_G(lru_cache).value = valued;
-        LYCITEA_G(lru_cache).value[count] = lycitea_helpers_lru_apply_memory(sizeof(zval *), NULL, 0);
+        LYCITEA_G(lru_cache).value[count] = lycitea_helpers_lru_apply_memory(sizeof(zval ), NULL, 0);
         if(!LYCITEA_G(lru_cache).value[count]){
             lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue[count], sizeof(lru_queue));
             lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).hash[count], sizeof(lru_hash));
@@ -307,7 +288,15 @@ int lycitea_helpers_lru_apply_cache(char* version, int numbers)
             return -1;
         }
         array_init_persistent(LYCITEA_G(lru_cache).value[count]);
-        add_assoc_long(&(LYCITEA_G(lru_cache).versionMap), version, LYCITEA_G(lru_cache).count);
+        zval *c = lycitea_helpers_lru_apply_memory(sizeof(zval), NULL, 0);
+        if(NULL == c){
+            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue[count], sizeof(lru_queue));
+            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).hash[count], sizeof(lru_hash));
+            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).value[count], sizeof(zval *));
+            return -1;
+        }
+        ZVAL_LONG(c, LYCITEA_G(lru_cache).count);
+        zend_hash_str_add(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), version, strlen(version), c);
         LYCITEA_G(lru_cache).count = count + 1;
         return count;
     }

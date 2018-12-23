@@ -45,7 +45,7 @@ typedef struct _lru_container
     lru_queue       **queue;
     lru_hash        **hash;
     zval            **value;
-    zval            versionMap;
+    zval            *versionMap;
     zend_long       last_page_number;
     zend_long       clean_cycle;
     zend_long       prev_clean_time;
@@ -56,5 +56,5 @@ typedef struct _lru_container
 
 int lycitea_helpers_lru_apply_cache(char* , int );
 int lycitea_helpers_lru_referencepage( lru_queue* , lru_hash* , int, char*  , HashTable *);
-void lycitea_helpers_lru_destroy();
+void lycitea_helpers_lru_destroy(time_t);
 #endif
