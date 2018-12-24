@@ -58,8 +58,8 @@ PHP_METHOD(lycitea_cache_lru, __construct) {
     if (!self) {
         RETURN_FALSE;
     }
+    char exc_cmsg[LYCITEA_MAX_MSG_EXCEPTION];
     if(0 >= numbers || 0 >= ZSTR_LEN(version)){
-        char exc_cmsg[LYCITEA_MAX_MSG_EXCEPTION];
         if(0 >= numbers){
             snprintf(exc_cmsg, LYCITEA_MAX_MSG_EXCEPTION, "lru cache numbers must be gt 0");
         }else{
@@ -69,6 +69,11 @@ PHP_METHOD(lycitea_cache_lru, __construct) {
     }
     zend_update_property_str(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_VERSION), version);
     zend_update_property_long(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_NUMBERS), numbers);
+    int index = lycitea_helpers_lru_apply_cache(ZSTR_VAL(version), numbers);
+    if(0 > index){
+        snprintf(exc_cmsg, LYCITEA_MAX_MSG_EXCEPTION, "Exceeding lru_memory_limit version:%s, numbers:%d", ZSTR_VAL(version), numbers);
+        lycitea_throw_exception(LYCITEA_ERR_CACHE_FAILED, exc_cmsg);
+    }
 
 }
 
@@ -80,12 +85,11 @@ PHP_METHOD(lycitea_cache_lru, set) {
         return;
     }
     zval *version = zend_read_property(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_VERSION), 1, NULL);
-    zval *numbers = zend_read_property(ce, self, ZEND_STRL(LYCITEA_CACHE_LRU_PROPERTY_NAME_NUMBERS), 1, NULL);
-    int index = lycitea_helpers_lru_apply_cache(Z_STRVAL_P(version), Z_LVAL_P(numbers));
-    if(0 > index){
-        RETURN_BOOL(IS_FALSE);
+    zval *zv_index = zend_hash_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).versionMap), Z_STR_P(version));
+    if(NULL == zv_index){
+        RETURN_FALSE;
     }
-
+    int index = Z_LVAL_P(zv_index);
     int pageNumber;
     zval *old_value = zend_hash_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).value[index]), key);
     if(old_value){
@@ -116,6 +120,7 @@ PHP_METHOD(lycitea_cache_lru, set) {
             }
         }
     }
+    RETURN_TRUE;
 }
 
 PHP_METHOD(lycitea_cache_lru, get) {

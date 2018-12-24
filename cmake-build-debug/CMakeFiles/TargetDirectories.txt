@@ -1,4 +1,0 @@
-/Users/wangjinxi/dockerWorkspace/lycitea_new/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/Users/wangjinxi/dockerWorkspace/lycitea_new/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/wangjinxi/dockerWorkspace/lycitea_new/cmake-build-debug/CMakeFiles/lycitea_new.dir
-/Users/wangjinxi/dockerWorkspace/lycitea_new/cmake-build-debug/CMakeFiles/lycitea.dir

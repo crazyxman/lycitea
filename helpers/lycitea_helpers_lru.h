@@ -50,7 +50,7 @@ typedef struct _lru_container
     zend_long       clean_cycle;
     zend_long       prev_clean_time;
     zend_long       memory_limit;
-    zend_long       memory_used;
+    zend_long       memory_usage;
 } lru_container;
 
 

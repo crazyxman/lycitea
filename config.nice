@@ -1,8 +1,0 @@
-#! /bin/sh
-#
-# Created by configure
-
-'./configure' \
-'--enable-lycitea' \
-'--enable-debug' \
-"$@"

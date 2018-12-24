@@ -26,7 +26,7 @@ void* lycitea_helpers_lru_apply_memory(zend_long size, void *p, int expand)
     if(size < 1 ){
         return NULL;
     }
-    int size_added = size + LYCITEA_G(lru_cache.memory_used);
+    int size_added = size + LYCITEA_G(lru_cache.memory_usage);
     if( size_added >  LYCITEA_G(lru_cache).memory_limit || size_added > zend_memory_usage(1)){
         return NULL;
     }
@@ -34,14 +34,14 @@ void* lycitea_helpers_lru_apply_memory(zend_long size, void *p, int expand)
     if(expand){
         tmp = realloc(p, size);
         if (EXPECTED(tmp || !size)) {
-            LYCITEA_G(lru_cache.memory_used) = size_added;
+            LYCITEA_G(lru_cache.memory_usage) = size_added;
             p = tmp;
             return p;
         }
     }else{
         tmp = malloc(size);
         if (EXPECTED(tmp || !size)) {
-            LYCITEA_G(lru_cache.memory_used) = size_added;
+            LYCITEA_G(lru_cache.memory_usage) = size_added;
             return tmp;
         }
     }
@@ -56,9 +56,9 @@ int lycitea_helpers_lru_free_memory(void *p, u_int size)
     if(!size){
         size = sizeof(p);
     }
-    LYCITEA_G(lru_cache.memory_used) -= size;
-    if(LYCITEA_G(lru_cache.memory_used) < 0){
-        LYCITEA_G(lru_cache.memory_used) = 0;
+    LYCITEA_G(lru_cache.memory_usage) -= size;
+    if(LYCITEA_G(lru_cache.memory_usage) < 0){
+        LYCITEA_G(lru_cache.memory_usage) = 0;
     }
     free(p);
     return 1;
@@ -69,9 +69,23 @@ int lycitea_helpers_lru_sub_usage(u_int size)
     if(size < 0){
          return 0;
     }
-    LYCITEA_G(lru_cache.memory_used) -= size;
-    if(LYCITEA_G(lru_cache.memory_used) < 0){
-        LYCITEA_G(lru_cache.memory_used) = 0;
+    LYCITEA_G(lru_cache.memory_usage) -= size;
+    if(LYCITEA_G(lru_cache.memory_usage) < 0){
+        LYCITEA_G(lru_cache.memory_usage) = 0;
+    }
+    return 1;
+}
+
+int lycitea_helpers_lru_add_usage(u_int size)
+{
+    if(size < 1 ){
+        return 0;
+    }
+    int size_added = size + LYCITEA_G(lru_cache.memory_usage);
+    if( size_added >  LYCITEA_G(lru_cache).memory_limit || size_added > zend_memory_usage(1)){
+        return 0;
+    }else{
+        LYCITEA_G(lru_cache.memory_usage) = size_added;
     }
     return 1;
 }
@@ -104,7 +118,7 @@ void lycitea_helpers_lru_destroy(time_t timestamp)
     if(index){
         LYCITEA_G(lru_cache).count = 0;
         LYCITEA_G(lru_cache).last_page_number = 0;
-        LYCITEA_G(lru_cache).memory_used = 0;
+        LYCITEA_G(lru_cache).memory_usage = 0;
         zval *versionMap = LYCITEA_G(lru_cache).versionMap;
         zend_hash_clean(Z_ARRVAL_P(versionMap));
         LYCITEA_G(lru_cache).prev_clean_time = timestamp;
@@ -113,7 +127,7 @@ void lycitea_helpers_lru_destroy(time_t timestamp)
 
 lru_qnode* lycitea_helpers_lru_create_qnode(lru_queue* queue, char* key, int pageNumber)
 {
-    lru_qnode* temp = lycitea_helpers_lru_apply_memory(sizeof( lru_qnode ), NULL, 0);
+    lru_qnode* temp = malloc(sizeof( lru_qnode ));;
     if(!temp){
         return NULL;
     }
@@ -257,15 +271,22 @@ int lycitea_helpers_lru_apply_cache(char* version, int numbers)
             hashed = lycitea_helpers_lru_apply_memory((count + 1) * sizeof(lru_hash *), LYCITEA_G(lru_cache).hash, 1);
         }
         if(!hashed){
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue[count], sizeof(lru_queue));
+            lycitea_helpers_lru_flush(LYCITEA_G(lru_cache).queue[count], NULL, NULL);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_queue *), LYCITEA_G(lru_cache).queue, 1);
+            lycitea_helpers_lru_sub_usage(sizeof(lru_queue *));
             return -1;
         }
         LYCITEA_G(lru_cache).hash = hashed;
         LYCITEA_G(lru_cache).hash[count] = lycitea_helpers_lru_create_hash(numbers);
-        if(!LYCITEA_G(lru_cache).hash[count]){
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue[count], sizeof(lru_queue));
+        int pre_usage = lycitea_helpers_lru_add_usage(numbers * sizeof( lru_qnode ));
+        if(!LYCITEA_G(lru_cache).hash[count] || !pre_usage){
+            lycitea_helpers_lru_flush(LYCITEA_G(lru_cache).queue[count], NULL, NULL);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_queue *), LYCITEA_G(lru_cache).queue, 1);
             lycitea_helpers_lru_apply_memory(count * sizeof(lru_hash *), LYCITEA_G(lru_cache).hash, 1);
-            lycitea_helpers_lru_sub_usage(sizeof(lru_hash *));
+            lycitea_helpers_lru_sub_usage(sizeof(lru_hash *) + sizeof(lru_queue *));
+            if(pre_usage){
+                lycitea_helpers_lru_sub_usage(numbers * sizeof( lru_qnode ));
+            }
             return -1;
         }
         if(NULL == LYCITEA_G(lru_cache).value){
@@ -274,25 +295,30 @@ int lycitea_helpers_lru_apply_cache(char* version, int numbers)
             valued = lycitea_helpers_lru_apply_memory((count + 1) * sizeof(zval *), LYCITEA_G(lru_cache).value, 1);
         }
         if(!valued){
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue[count], sizeof(lru_queue));
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).hash[count], sizeof(lru_hash));
+            lycitea_helpers_lru_flush(LYCITEA_G(lru_cache).queue[count], LYCITEA_G(lru_cache).hash[count], NULL);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_queue *), LYCITEA_G(lru_cache).queue, 1);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_hash *), LYCITEA_G(lru_cache).hash, 1);
+            lycitea_helpers_lru_sub_usage(sizeof(lru_hash *) + sizeof(lru_queue *) + (numbers * sizeof( lru_qnode )));
             return -1;
         }
         LYCITEA_G(lru_cache).value = valued;
         LYCITEA_G(lru_cache).value[count] = lycitea_helpers_lru_apply_memory(sizeof(zval ), NULL, 0);
         if(!LYCITEA_G(lru_cache).value[count]){
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue[count], sizeof(lru_queue));
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).hash[count], sizeof(lru_hash));
+            lycitea_helpers_lru_flush(LYCITEA_G(lru_cache).queue[count], LYCITEA_G(lru_cache).hash[count], NULL);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_queue *), LYCITEA_G(lru_cache).queue, 1);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_hash *), LYCITEA_G(lru_cache).hash, 1);
             lycitea_helpers_lru_apply_memory(count * sizeof(zval *), LYCITEA_G(lru_cache).value, 1);
-            lycitea_helpers_lru_sub_usage(sizeof(zval *));
+            lycitea_helpers_lru_sub_usage(sizeof(lru_hash *) + sizeof(lru_queue *) + sizeof(zval *) + (numbers * sizeof( lru_qnode )));
             return -1;
         }
         array_init_persistent(LYCITEA_G(lru_cache).value[count]);
         zval *c = lycitea_helpers_lru_apply_memory(sizeof(zval), NULL, 0);
         if(NULL == c){
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).queue[count], sizeof(lru_queue));
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).hash[count], sizeof(lru_hash));
-            lycitea_helpers_lru_free_memory(LYCITEA_G(lru_cache).value[count], sizeof(zval *));
+            lycitea_helpers_lru_flush(LYCITEA_G(lru_cache).queue[count], LYCITEA_G(lru_cache).hash[count], LYCITEA_G(lru_cache).value[count]);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_queue *), LYCITEA_G(lru_cache).queue, 1);
+            lycitea_helpers_lru_apply_memory(count * sizeof(lru_hash *), LYCITEA_G(lru_cache).hash, 1);
+            lycitea_helpers_lru_apply_memory(count * sizeof(zval *), LYCITEA_G(lru_cache).value, 1);
+            lycitea_helpers_lru_sub_usage(sizeof(lru_hash *) + sizeof(lru_queue *) + sizeof(zval *) + (numbers * sizeof( lru_qnode )));
             return -1;
         }
         ZVAL_LONG(c, LYCITEA_G(lru_cache).count);

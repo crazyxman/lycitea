@@ -35,8 +35,17 @@
 
 ZEND_DECLARE_MODULE_GLOBALS(lycitea);
 
+ZEND_BEGIN_ARG_INFO(arginfo_lru_memory_usage, 0)
+ZEND_END_ARG_INFO()
+
+
+PHP_FUNCTION(lycitea_lru_memory_usage)
+{
+    RETURN_LONG(LYCITEA_G(lru_cache).memory_usage);
+}
 
 zend_function_entry lycitea_functions[] = {
+        PHP_FE(lycitea_lru_memory_usage,                                 arginfo_lru_memory_usage)
         {NULL, NULL, NULL}
 };
 
@@ -78,7 +87,7 @@ PHP_RINIT_FUNCTION(lycitea)
 
 PHP_RSHUTDOWN_FUNCTION(lycitea)
 {
-    if(LYCITEA_G(lru_cache).clean_cycle > 60){
+    if(LYCITEA_G(lru_cache).clean_cycle >= 60){
         time_t timestamp = time(NULL);
         if(( (timestamp - LYCITEA_G(lru_cache).prev_clean_time)) > LYCITEA_G(lru_cache).clean_cycle){
             lycitea_helpers_lru_destroy(timestamp);
