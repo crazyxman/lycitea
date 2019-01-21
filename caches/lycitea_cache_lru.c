@@ -109,6 +109,7 @@ PHP_METHOD(lycitea_cache_lru, set) {
         zend_hash_index_add(Z_ARRVAL(arr), 0, &pvalue);
         add_index_long(&arr, 1, pageNumber);
         zend_hash_str_add(Z_ARRVAL_P(LYCITEA_G(lru_cache).value[index]), ZSTR_VAL(key), ZSTR_LEN(key), &arr);
+        RETURN_TRUE;
     }else if(0 == newItem){
         zval *arr = zend_hash_str_find(Z_ARRVAL_P(LYCITEA_G(lru_cache).value[index]), ZSTR_VAL(key), ZSTR_LEN(key));
         if(arr){
@@ -119,8 +120,10 @@ PHP_METHOD(lycitea_cache_lru, set) {
                 zend_hash_index_update(Z_ARRVAL_P(arr), 0, &pvalue);
             }
         }
+        RETURN_TRUE;
     }
-    RETURN_TRUE;
+    RETURN_FALSE;
+
 }
 
 PHP_METHOD(lycitea_cache_lru, get) {

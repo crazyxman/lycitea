@@ -132,7 +132,7 @@ lru_qnode* lycitea_helpers_lru_create_qnode(lru_queue* queue, char* key, int pag
         return NULL;
     }
     temp->pageNumber = pageNumber;
-    temp->key = key;
+    temp->key = pestrdup(key, 1);
     temp->prev = temp->next = NULL;
     return temp;
 }
@@ -193,9 +193,8 @@ int lycitea_helpers_lru_enqueue( lru_queue* queue, lru_hash* hash, int pageNumbe
     if ( queue->count == queue->numberOfFrames ){
         pageNumber = queue->rear->pageNumber;
         hash->array[ pageNumber ] = NULL;
-        zval *value = zend_hash_str_find(ht, queue->rear->key, strlen(queue->rear->key));
-        LYCITEA_G(lru_cache).last_page_number = Z_LVAL_P(zend_hash_index_find(Z_ARRVAL_P(value), 1));
         zend_hash_str_del(ht, queue->rear->key, strlen(queue->rear->key));
+        LYCITEA_G(lru_cache).last_page_number = pageNumber;
         lycitea_helpers_lru_del_queue( queue );
     }
     lru_qnode* temp = lycitea_helpers_lru_create_qnode( queue, key, pageNumber);
